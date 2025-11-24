@@ -17,6 +17,22 @@ class HomePage extends StatelessWidget {
             SizedBox(height: 100),
             ElevatedButton(
               onPressed: () {
+                Navigator.pushNamed(context, '/add_meals');
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: Text("Ajouter un repas"),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/list_meals');
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              child: Text("Liste des repas"),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
                 Navigator.pushNamed(context, '/');
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
