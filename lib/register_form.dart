@@ -29,15 +29,21 @@ class _RegisterFormState extends State<RegisterForm> {
         }),
       );
 
-      if (response.headers['content-type']?.contains('application/json') ??
-          false) {
+      if (response.headers['content-type']?.contains('application/json') ?? false) {
         var data = json.decode(response.body);
 
         if (data['success'] == true) {
+          // Message succès
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Inscription réussie !")),
           );
-          Navigator.pushNamed(context, '/login');
+
+          // Redirection directe vers la HomePage
+          Navigator.pushNamed(
+            context,
+            '/home',
+            arguments: controllerUsername.text,
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(data['message'] ?? "Erreur d'inscription")),
