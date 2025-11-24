@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foodie_order/home_page.dart';
-import 'login_form.dart';
-import 'register_form.dart';
+import 'auth/login_form.dart';
+import 'auth/register_form.dart';
 
 void main() {
   runApp(const MyApp());
