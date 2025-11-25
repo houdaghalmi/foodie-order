@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:foodie_order/home_page.dart';
+import 'package:foodie_order/user/home_page.dart' as UserHome;
+import 'package:foodie_order/admin/home_page.dart' as AdminHome;
 import 'auth/login_form.dart';
 import 'auth/register_form.dart';
-import 'meals/add_meals.dart';
-import 'meals/list_meals.dart';
-import 'order/add_order.dart';
-import 'order/list_orders.dart';
+import 'admin/meals/add_meals.dart';
+import 'admin/meals/list_meals.dart';
+import 'user/order/add_order.dart';
+import 'user/order/list_orders.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gestion des articles',
+      title: 'Gestion des commandes ',
       theme: ThemeData(primarySwatch: Colors.blue),
 
       initialRoute: '/',
@@ -25,7 +26,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => LoginForm(),
         '/register': (context) => RegisterForm(),
         '/login': (context) => LoginForm(),
-        '/home': (context) => HomePage(),
+        '/admin_home': (context) => AdminHome.HomePage(),
+        '/user_home': (context) => UserHome.HomePage(),
         '/add_meals': (context) => AddMealForm(onMealAdded: () {}),
         '/list_meals': (context) => ListMeals(),
 

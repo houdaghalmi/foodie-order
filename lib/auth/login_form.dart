@@ -42,11 +42,24 @@ class _LoginFormState extends State<LoginForm> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Connexion réussie!")));
-          Navigator.pushNamed(
-            context,
-            '/home',
-            arguments: controllerusername.text,
-          );
+
+          // Check if user is admin or regular user
+          String role = data['role'] ?? 'user';
+          print("User role: $role");
+
+          if (role == 'admin') {
+            Navigator.pushNamed(
+              context,
+              '/admin_home',
+              arguments: controllerusername.text,
+            );
+          } else {
+            Navigator.pushNamed(
+              context,
+              '/user_home',
+              arguments: controllerusername.text,
+            );
+          }
         }
         //Sinon, un message d'erreur est affiché (soit data['message'], soit un message par défaut).
         else {

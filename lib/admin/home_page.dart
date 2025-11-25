@@ -7,12 +7,12 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final String user = ModalRoute.of(context)!.settings.arguments as String;
     return Scaffold(
-      appBar: AppBar(title: Text("Page d'accueil")),
+      appBar: AppBar(title: Text("Page d'accueil admin")),
       body: Container(
         padding: EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Text("Bienvenue $user"),
+            Text("Bienvenue ADMIN $user"),
             Image(image: AssetImage("images/dashboard.png")),
             SizedBox(height: 100),
             ElevatedButton(
@@ -30,22 +30,7 @@ class HomePage extends StatelessWidget {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               child: Text("Liste des repas"),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/add_order', arguments: user);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-              child: Text("Ajouter une commande"),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/list_orders', arguments: user);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-              child: Text("Liste des commandes"),
-            ),
+            
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
