@@ -31,55 +31,97 @@ class _AddOrderFormState extends State<AddOrderForm> {
     _fetchMeals();
   }
 
- Future<void> _fetchUserId() async {
-  print("USERNAME REÇU = ${widget.username}");
+  Future<void> _fetchUserId() async {
+    print("USERNAME REÇU = ${widget.username}");
 
-  if (widget.username == null || widget.username!.isEmpty) {
-    print("Username NULL → impossible de récupérer user_id");
-    return;
+    if (widget.username == null || widget.username!.isEmpty) {
+      print("Username NULL → impossible de récupérer user_id");
+      return;
+    }
+
+    var url = Uri.parse("${globals.baseUrl}get_user_id.php");
+
+    try {
+      var response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"username": widget.username}),
+      );
+
+      print("Réponse API: ${response.body}");
+
+      if (response.headers['content-type']?.toLowerCase().contains(
+            'application/json',
+          ) ??
+          false) {
+        var data = jsonDecode(response.body);
+        if (data["success"]) {
+          setState(() {
+            userId = data["user_id"].toString();
+          });
+          print("User ID récupéré : $userId");
+        } else {
+          print(
+            "Erreur récupération user_id : ${data["message"] ?? "inconnue"}",
+          );
+        }
+      } else {
+        print("Réponse non-JSON reçue de get_user_id.php: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur: le serveur n'a pas retourné du JSON"),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Exception lors de _fetchUserId: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Erreur réseau: $e")));
+    }
   }
-
-  var url = Uri.parse("${globals.baseUrl}get_user_id.php");
-
-  var response = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({"username": widget.username}),
-  );
-
-  print("Réponse API: ${response.body}");
-
-  var data = jsonDecode(response.body);
-  if (data["success"]) {
-    setState(() {
-      userId = data["user_id"].toString();
-    });
-    print("User ID récupéré : $userId");
-  } else {
-    print("Erreur récupération user_id : ${data["message"] ?? "inconnue"}");
-  }
-}
 
   Future<void> _fetchMeals() async {
     var url = Uri.parse("${globals.baseUrl}list_meals.php");
     try {
       var response = await http.get(url);
-      var data = jsonDecode(response.body);
 
-      print(data); // DEBUG
+      print("Response from list_meals.php: ${response.body}");
 
-      if (data["success"]) {
-        setState(() {
-          meals = List<Map<String, dynamic>>.from(data["meals"]);
-          isLoadingMeals = false;
-        });
+      if (response.headers['content-type']?.toLowerCase().contains(
+            'application/json',
+          ) ??
+          false) {
+        var data = jsonDecode(response.body);
+        print(data); // DEBUG
+
+        if (data["success"]) {
+          setState(() {
+            meals = List<Map<String, dynamic>>.from(data["meals"]);
+            isLoadingMeals = false;
+          });
+        } else {
+          setState(() => isLoadingMeals = false);
+          print("API error: ${data['message']}");
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Erreur: ${data['message']}")));
+        }
       } else {
         setState(() => isLoadingMeals = false);
-        print("API error: ${data['message']}");
+        print("Réponse non-JSON reçue de list_meals.php: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur: le serveur n'a pas retourné du JSON"),
+          ),
+        );
       }
     } catch (e) {
       setState(() => isLoadingMeals = false);
       print("Erreur repas: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Erreur réseau: $e")));
     }
   }
 
@@ -98,20 +140,33 @@ class _AddOrderFormState extends State<AddOrderForm> {
         }),
       );
 
-      var data = jsonDecode(response.body);
+      print("Response from add_orders.php: ${response.body}");
 
-      if (data["success"]) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Commande ajoutée avec succès !")),
-        );
-        widget.onOrderAdded();
-        Navigator.pop(context);
+      if (response.headers['content-type']?.toLowerCase().contains(
+            'application/json',
+          ) ??
+          false) {
+        var data = jsonDecode(response.body);
+
+        if (data["success"]) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Commande ajoutée avec succès !")),
+          );
+          widget.onOrderAdded();
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Erreur : ${data["message"]}")),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Erreur : ${data["message"]}")));
+        print("Réponse non-JSON reçue: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur serveur: réponse non-JSON")),
+        );
       }
     } catch (e) {
+      print("Exception lors de _addOrder: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Erreur réseau : $e")));

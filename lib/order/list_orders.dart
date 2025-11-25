@@ -40,13 +40,27 @@ class _ListOrdersState extends State<ListOrders> {
         body: jsonEncode({"username": widget.username}),
       );
 
-      var data = jsonDecode(response.body);
-      if (data["success"]) {
-        setState(() {
-          userId = data["user_id"].toString();
-        });
-        _fetchOrders();
+      print("Response from get_user_id.php: ${response.body}");
+
+      if (response.headers['content-type']?.toLowerCase().contains(
+            'application/json',
+          ) ??
+          false) {
+        var data = jsonDecode(response.body);
+        if (data["success"]) {
+          setState(() {
+            userId = data["user_id"].toString();
+          });
+          _fetchOrders();
+        } else {
+          print("Erreur API: ${data['message']}");
+          _fetchOrders();
+        }
       } else {
+        print("Réponse non-JSON reçue: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur serveur: réponse non-JSON")),
+        );
         _fetchOrders();
       }
     } catch (e) {
@@ -148,16 +162,21 @@ class _ListOrdersState extends State<ListOrders> {
   }
 
   Future<void> _deleteOrder(int id) async {
-    var url = Uri.parse("${globals.baseUrl}delete_order.php");
+    // PHP expects id as GET parameter, not POST body
+    var url = Uri.parse("${globals.baseUrl}delete_order.php?id=$id");
 
     try {
-      var response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"id": id}),
+      var response = await http.post(url);
+
+      print(
+        "delete_order.php response (status ${response.statusCode}): ${response.body}",
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 &&
+          (response.headers['content-type']?.toLowerCase().contains(
+                'application/json',
+              ) ??
+              false)) {
         var data = jsonDecode(response.body);
         if (data["success"]) {
           ScaffoldMessenger.of(
@@ -165,10 +184,19 @@ class _ListOrdersState extends State<ListOrders> {
           ).showSnackBar(SnackBar(content: Text("Commande supprimée")));
           _fetchOrders();
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Erreur suppression")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Erreur suppression: ${data['error'] ?? data['message']}",
+              ),
+            ),
+          );
         }
+      } else if (response.statusCode == 200) {
+        print("Réponse non-JSON reçue: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur serveur: réponse non-JSON")),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erreur serveur lors de la suppression")),
