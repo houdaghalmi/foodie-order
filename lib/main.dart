@@ -4,6 +4,9 @@ import 'auth/login_form.dart';
 import 'auth/register_form.dart';
 import 'meals/add_meals.dart';
 import 'meals/list_meals.dart';
+import 'order/add_order.dart';
+import 'order/list_orders.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -11,7 +14,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  //get user => null;
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -26,12 +28,17 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomePage(),
         '/add_meals': (context) => AddMealForm(onMealAdded: () {}),
         '/list_meals': (context) => ListMeals(),
-        
-       
-      
-       
-      
-       
+
+        '/add_order': (context) {
+          final username =
+              ModalRoute.of(context)!.settings.arguments as String?;
+          return AddOrderForm(username: username, onOrderAdded: () {});
+        },
+        '/list_orders': (context) {
+          final username =
+              ModalRoute.of(context)!.settings.arguments as String?;
+          return ListOrders(username: username);
+        },
       },
     );
   }
