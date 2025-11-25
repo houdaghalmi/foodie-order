@@ -40,12 +40,7 @@ class _ListOrdersState extends State<ListOrders> {
         body: jsonEncode({"username": widget.username}),
       );
 
-      print("Response from get_user_id.php: ${response.body}");
-
-      if (response.headers['content-type']?.toLowerCase().contains(
-            'application/json',
-          ) ??
-          false) {
+      if (response.headers['content-type']?.toLowerCase().contains('application/json') ?? false) {
         var data = jsonDecode(response.body);
         if (data["success"]) {
           setState(() {
@@ -53,18 +48,12 @@ class _ListOrdersState extends State<ListOrders> {
           });
           _fetchOrders();
         } else {
-          print("Erreur API: ${data['message']}");
           _fetchOrders();
         }
       } else {
-        print("Réponse non-JSON reçue: ${response.body}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur serveur: réponse non-JSON")),
-        );
         _fetchOrders();
       }
     } catch (e) {
-      print("Erreur lors de la récupération de l'ID utilisateur: $e");
       _fetchOrders();
     }
   }
@@ -75,41 +64,26 @@ class _ListOrdersState extends State<ListOrders> {
     });
 
     var url = Uri.parse("${globals.baseUrl}list_orders.php");
-    print("Fetching orders from: $url");
 
     try {
       var response;
       if (userId != null) {
-        // Fetch orders for specific user
         response = await http.post(
           url,
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({"user_id": userId}),
         );
       } else {
-        // Fetch all orders
         response = await http.get(url);
       }
-      print("Status code: ${response.statusCode}");
-      print("Headers: ${response.headers}");
-      print("Body: ${response.body}");
 
       if (response.statusCode == 200 &&
-          (response.headers['content-type']?.toLowerCase().contains(
-                'application/json',
-              ) ??
-              false)) {
+          (response.headers['content-type']?.toLowerCase().contains('application/json') ?? false)) {
         var data = json.decode(response.body);
-        print("Decoded data: $data");
-
         var orders = data['orders'] ?? [];
 
-        // Filter orders by user_id if userId is set
         if (userId != null) {
-          orders =
-              orders
-                  .where((order) => order['user_id'].toString() == userId)
-                  .toList();
+          orders = orders.where((order) => order['user_id'].toString() == userId).toList();
         }
 
         setState(() {
@@ -121,16 +95,15 @@ class _ListOrdersState extends State<ListOrders> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Réponse non JSON ou erreur serveur")),
+          SnackBar(content: Text("Erreur serveur ou réponse non JSON")),
         );
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      print("Exception during fetchOrders: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur réseau ou serveur indisponible.")),
+        SnackBar(content: Text("Erreur réseau ou serveur indisponible")),
       );
     }
   }
@@ -138,12 +111,11 @@ class _ListOrdersState extends State<ListOrders> {
   void _showAddDialog() {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Ajouter Commande"),
-          content: AddOrderForm(onOrderAdded: _fetchOrders),
-        );
-      },
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text("Ajouter Commande", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: AddOrderForm(onOrderAdded: _fetchOrders),
+      ),
     );
   }
 
@@ -152,111 +124,169 @@ class _ListOrdersState extends State<ListOrders> {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Modifier Commande"),
-          content: EditOrderForm(order: order, onOrderUpdated: _fetchOrders),
-        );
-      },
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text("Modifier Commande", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: EditOrderForm(order: order, onOrderUpdated: _fetchOrders),
+      ),
     );
   }
 
   Future<void> _deleteOrder(int id) async {
-    // PHP expects id as GET parameter, not POST body
     var url = Uri.parse("${globals.baseUrl}delete_order.php?id=$id");
 
     try {
       var response = await http.post(url);
 
-      print(
-        "delete_order.php response (status ${response.statusCode}): ${response.body}",
-      );
-
       if (response.statusCode == 200 &&
-          (response.headers['content-type']?.toLowerCase().contains(
-                'application/json',
-              ) ??
-              false)) {
+          (response.headers['content-type']?.toLowerCase().contains('application/json') ?? false)) {
         var data = jsonDecode(response.body);
         if (data["success"]) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Commande supprimée")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Commande supprimée")));
           _fetchOrders();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Erreur suppression: ${data['error'] ?? data['message']}",
-              ),
-            ),
+            SnackBar(content: Text("Erreur suppression: ${data['error'] ?? data['message']}")),
           );
         }
-      } else if (response.statusCode == 200) {
-        print("Réponse non-JSON reçue: ${response.body}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur serveur: réponse non-JSON")),
-        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erreur serveur lors de la suppression")),
         );
       }
     } catch (e) {
-      print("Exception during deleteOrder: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Erreur réseau lors de la suppression.")),
       );
     }
   }
 
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return Colors.orange;
+      case "confirmed":
+        return Colors.green;
+      case "cancelled":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xfff5f6fa),
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: Text(
           widget.username != null
               ? "Mes commandes (${widget.username})"
               : "Liste des commandes",
+          style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold),
         ),
-        actions: [IconButton(icon: Icon(Icons.add), onPressed: _showAddDialog)],
+        centerTitle: true,
+        elevation: 2,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add, color: Colors.green[700]),
+            onPressed: _showAddDialog,
+            tooltip: "Ajouter commande",
+          ),
+        ],
       ),
-      body:
-          _isLoading
-              ? Center(child: CircularProgressIndicator())
-              : _orders.isEmpty
-              ? Center(child: Text("Aucune commande"))
-              : ListView.builder(
-                itemCount: _orders.length,
-                itemBuilder: (context, index) {
-                  var order = _orders[index];
-
-                  return Card(
-                    margin: EdgeInsets.all(12),
-                    child: ListTile(
-                      title: Text("Commande #${order['id']}"),
-                      subtitle: Text(
-                        "User: ${order['user_id']} | Meal: ${order['meal_id']}\n"
-                        "Qte: ${order['quantity']} | Prix: ${order['total_price']} €\n"
-                        "Status: ${order['status']}",
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _editOrder(order['id']),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Colors.green))
+          : _orders.isEmpty
+              ? Center(
+                  child: Text(
+                    "Aucune commande trouvée",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchOrders,
+                  child: ListView.builder(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    itemCount: _orders.length,
+                    itemBuilder: (context, index) {
+                      var order = _orders[index];
+                      return Card(
+                        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 3,
+                        shadowColor: Colors.black12,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.all(16),
+                          title: Text(
+                            "Commande #${order['id']}",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                           ),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteOrder(order['id']),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Utilisateur: ${order['user_id']}",
+                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                ),
+                                Text(
+                                  "Repas: ${order['meal_id']}",
+                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  "Quantité: ${order['quantity']}  |  Prix total: ${order['total_price']} €",
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                ),
+                                SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Statut : ",
+                                      style: TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(order['status']).withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        order['status'].toString().toUpperCase(),
+                                        style: TextStyle(
+                                          color: _statusColor(order['status']),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                )
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blue),
+                                tooltip: "Modifier",
+                                onPressed: () => _editOrder(order['id']),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                tooltip: "Supprimer",
+                                onPressed: () => _deleteOrder(order['id']),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 }

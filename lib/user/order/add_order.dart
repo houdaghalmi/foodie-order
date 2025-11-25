@@ -16,13 +16,8 @@ class AddOrderForm extends StatefulWidget {
 
 class _AddOrderFormState extends State<AddOrderForm> {
   String? userId;
-  String? selectedMealId;
   List<Map<String, dynamic>> meals = [];
   bool isLoadingMeals = true;
-  final TextEditingController quantityController = TextEditingController(
-    text: "1",
-  );
-  String status = "pending";
 
   @override
   void initState() {
@@ -32,12 +27,7 @@ class _AddOrderFormState extends State<AddOrderForm> {
   }
 
   Future<void> _fetchUserId() async {
-    print("USERNAME REÇU = ${widget.username}");
-
-    if (widget.username == null || widget.username!.isEmpty) {
-      print("Username NULL → impossible de récupérer user_id");
-      return;
-    }
+    if (widget.username == null || widget.username!.isEmpty) return;
 
     var url = Uri.parse("${globals.baseUrl}get_user_id.php");
 
@@ -48,36 +38,14 @@ class _AddOrderFormState extends State<AddOrderForm> {
         body: jsonEncode({"username": widget.username}),
       );
 
-      print("Réponse API: ${response.body}");
-
-      if (response.headers['content-type']?.toLowerCase().contains(
-            'application/json',
-          ) ??
-          false) {
+      if (response.headers['content-type']!.contains('application/json')) {
         var data = jsonDecode(response.body);
         if (data["success"]) {
-          setState(() {
-            userId = data["user_id"].toString();
-          });
-          print("User ID récupéré : $userId");
-        } else {
-          print(
-            "Erreur récupération user_id : ${data["message"] ?? "inconnue"}",
-          );
+          setState(() => userId = data["user_id"].toString());
         }
-      } else {
-        print("Réponse non-JSON reçue de get_user_id.php: ${response.body}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Erreur: le serveur n'a pas retourné du JSON"),
-          ),
-        );
       }
     } catch (e) {
-      print("Exception lors de _fetchUserId: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erreur réseau: $e")));
+      print("Erreur userId : $e");
     }
   }
 
@@ -86,160 +54,268 @@ class _AddOrderFormState extends State<AddOrderForm> {
     try {
       var response = await http.get(url);
 
-      print("Response from list_meals.php: ${response.body}");
-
-      if (response.headers['content-type']?.toLowerCase().contains(
-            'application/json',
-          ) ??
-          false) {
+      if (response.headers['content-type']!.contains('application/json')) {
         var data = jsonDecode(response.body);
-        print(data); // DEBUG
-
         if (data["success"]) {
           setState(() {
             meals = List<Map<String, dynamic>>.from(data["meals"]);
             isLoadingMeals = false;
           });
-        } else {
-          setState(() => isLoadingMeals = false);
-          print("API error: ${data['message']}");
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Erreur: ${data['message']}")));
         }
-      } else {
-        setState(() => isLoadingMeals = false);
-        print("Réponse non-JSON reçue de list_meals.php: ${response.body}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Erreur: le serveur n'a pas retourné du JSON"),
-          ),
-        );
       }
     } catch (e) {
-      setState(() => isLoadingMeals = false);
-      print("Erreur repas: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erreur réseau: $e")));
+      isLoadingMeals = false;
     }
   }
 
-  Future<void> _addOrder() async {
-    var url = Uri.parse("${globals.baseUrl}add_orders.php");
+  Future<void> _passerCommandeUnique(String mealId, String mealName) async {
+    int? quantity = await showDialog<int>(
+      context: context,
+      builder: (BuildContext context) {
+        int tempQuantity = 1;
 
-    try {
-      var response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "user_id": userId,
-          "meal_id": selectedMealId,
-          "quantity": quantityController.text,
-          "status": status,
-        }),
-      );
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Text(
+            'Commander $mealName',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.remove_circle,
+                      color: Colors.red,
+                      size: 32,
+                    ),
+                    onPressed: () {
+                      if (tempQuantity > 1) setState(() => tempQuantity--);
+                    },
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.green, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      tempQuantity.toString(),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add_circle, color: Colors.green, size: 32),
+                    onPressed: () => setState(() => tempQuantity++),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              child: Text("Annuler"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton.icon(
+              icon: Icon(Icons.shopping_cart),
+              label: Text("Commander"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(context, tempQuantity),
+            ),
+          ],
+        );
+      },
+    );
 
-      print("Response from add_orders.php: ${response.body}");
+    if (quantity != null && quantity > 0) {
+      var url = Uri.parse("${globals.baseUrl}add_orders.php");
 
-      if (response.headers['content-type']?.toLowerCase().contains(
-            'application/json',
-          ) ??
-          false) {
-        var data = jsonDecode(response.body);
+      try {
+        var response = await http.post(
+          url,
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "user_id": userId,
+            "commandes": [
+              {"meal_id": mealId, "quantity": quantity},
+            ],
+            "status": "pending",
+          }),
+        );
 
-        if (data["success"]) {
+        if (jsonDecode(response.body)["success"]) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Commande ajoutée avec succès !")),
+            SnackBar(
+              content: Text("Commande de $quantity x $mealName effectuée !"),
+              backgroundColor: Colors.green,
+            ),
           );
           widget.onOrderAdded();
-          Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erreur : ${data["message"]}")),
-          );
         }
-      } else {
-        print("Réponse non-JSON reçue: ${response.body}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur serveur: réponse non-JSON")),
-        );
+      } catch (e) {
+        print("Erreur commande unique: $e");
       }
-    } catch (e) {
-      print("Exception lors de _addOrder: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erreur réseau : $e")));
+    }
+  }
+
+  String _getImageUrl(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty)
+      return "${globals.baseUrl}images/default_meal.jpg";
+
+    if (imagePath.startsWith('http')) return imagePath;
+
+    if (imagePath.contains("uploads/")) {
+      return "${globals.baseUrl}$imagePath";
+    } else {
+      return "${globals.baseUrl}uploads/$imagePath";
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Ajouter une commande")),
-      body: Padding(
-        padding: EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Utilisateur: ${widget.username ?? 'Non connecté'}",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              isLoadingMeals
-                  ? CircularProgressIndicator()
-                  : DropdownButtonFormField<String>(
-                    value: selectedMealId,
-                    decoration: InputDecoration(labelText: "Repas"),
-                    items:
-                        meals.map((meal) {
-                          return DropdownMenuItem<String>(
-                            value: meal["id"].toString(),
-                            child: Text(meal["name"]),
-                          );
-                        }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedMealId = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return "Veuillez sélectionner un repas";
-                      }
-                      return null;
-                    },
-                  ),
-              TextField(
-                controller: quantityController,
-                decoration: InputDecoration(labelText: "Quantité"),
-                keyboardType: TextInputType.number,
-              ),
-              DropdownButtonFormField(
-                value: status,
-                decoration: InputDecoration(labelText: "Statut"),
-                items: [
-                  DropdownMenuItem(value: "pending", child: Text("Pending")),
-                  DropdownMenuItem(
-                    value: "confirmed",
-                    child: Text("Confirmed"),
-                  ),
-                  DropdownMenuItem(
-                    value: "cancelled",
-                    child: Text("Cancelled"),
-                  ),
-                ],
-                onChanged: (value) => setState(() => status = value.toString()),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _addOrder,
-                child: Text("Ajouter la commande"),
-              ),
-            ],
+      backgroundColor: Color(0xfff9f9f9),
+
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 4,
+        shadowColor: Colors.black12,
+        title: Text(
+          "Ajouter une commande",
+          style: TextStyle(
+            color: Colors.green[700],
+            fontWeight: FontWeight.bold,
           ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.shopping_cart_outlined, color: Colors.green),
+            iconSize: 28,
+            onPressed: () {
+              Navigator.pushNamed(context, "/list_orders");
+            },
+          ),
+        ],
+      ),
+
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            SizedBox(height: 20),
+
+            Expanded(
+              child:
+                  isLoadingMeals
+                      ? Center(
+                        child: CircularProgressIndicator(color: Colors.green),
+                      )
+                      : ListView.builder(
+                        itemCount: meals.length,
+                        itemBuilder: (context, index) {
+                          final meal = meals[index];
+                          final price =
+                              double.tryParse(meal["price"].toString()) ?? 0.0;
+
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(18),
+                                  ),
+                                  child: Image.network(
+                                    _getImageUrl(meal["image"]),
+                                    height: 150,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+
+                                Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        meal["name"],
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      SizedBox(height: 4),
+                                      Text(
+                                        "€${price.toStringAsFixed(2)}",
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green[700],
+                                        ),
+                                      ),
+
+                                      SizedBox(height: 10),
+
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: ElevatedButton.icon(
+                                          onPressed:
+                                              () => _passerCommandeUnique(
+                                                meal["id"].toString(),
+                                                meal["name"],
+                                              ),
+                                          icon: Icon(Icons.shopping_cart),
+                                          label: Text("Commander"),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 10,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+            ),
+          ],
         ),
       ),
     );
