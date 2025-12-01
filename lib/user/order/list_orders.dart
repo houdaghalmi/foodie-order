@@ -40,7 +40,10 @@ class _ListOrdersState extends State<ListOrders> {
         body: jsonEncode({"username": widget.username}),
       );
 
-      if (response.headers['content-type']?.toLowerCase().contains('application/json') ?? false) {
+      if (response.headers['content-type']?.toLowerCase().contains(
+            'application/json',
+          ) ??
+          false) {
         var data = jsonDecode(response.body);
         if (data["success"]) {
           setState(() {
@@ -78,12 +81,18 @@ class _ListOrdersState extends State<ListOrders> {
       }
 
       if (response.statusCode == 200 &&
-          (response.headers['content-type']?.toLowerCase().contains('application/json') ?? false)) {
+          (response.headers['content-type']?.toLowerCase().contains(
+                'application/json',
+              ) ??
+              false)) {
         var data = json.decode(response.body);
         var orders = data['orders'] ?? [];
 
         if (userId != null) {
-          orders = orders.where((order) => order['user_id'].toString() == userId).toList();
+          orders =
+              orders
+                  .where((order) => order['user_id'].toString() == userId)
+                  .toList();
         }
 
         setState(() {
@@ -111,11 +120,17 @@ class _ListOrdersState extends State<ListOrders> {
   void _showAddDialog() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Ajouter Commande", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: AddOrderForm(onOrderAdded: _fetchOrders),
-      ),
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              "Ajouter Commande",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: AddOrderForm(onOrderAdded: _fetchOrders),
+          ),
     );
   }
 
@@ -124,11 +139,17 @@ class _ListOrdersState extends State<ListOrders> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Modifier Commande", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: EditOrderForm(order: order, onOrderUpdated: _fetchOrders),
-      ),
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              "Modifier Commande",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: EditOrderForm(order: order, onOrderUpdated: _fetchOrders),
+          ),
     );
   }
 
@@ -139,14 +160,23 @@ class _ListOrdersState extends State<ListOrders> {
       var response = await http.post(url);
 
       if (response.statusCode == 200 &&
-          (response.headers['content-type']?.toLowerCase().contains('application/json') ?? false)) {
+          (response.headers['content-type']?.toLowerCase().contains(
+                'application/json',
+              ) ??
+              false)) {
         var data = jsonDecode(response.body);
         if (data["success"]) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Commande supprimée")));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Commande supprimée")));
           _fetchOrders();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erreur suppression: ${data['error'] ?? data['message']}")),
+            SnackBar(
+              content: Text(
+                "Erreur suppression: ${data['error'] ?? data['message']}",
+              ),
+            ),
           );
         }
       } else {
@@ -177,116 +207,227 @@ class _ListOrdersState extends State<ListOrders> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xfff5f6fa),
+      backgroundColor: Color(0xfff9f9f9),
       appBar: AppBar(
         backgroundColor: Colors.white,
+        elevation: 4,
+        shadowColor: Colors.black12,
         title: Text(
-          widget.username != null
-              ? "Mes commandes (${widget.username})"
-              : "Liste des commandes",
-          style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold),
+          widget.username != null ? "Mes commandes" : "Liste des commandes",
+          style: TextStyle(
+            color: Colors.green[700],
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
-        elevation: 2,
         actions: [
           IconButton(
-            icon: Icon(Icons.add, color: Colors.green[700]),
+            icon: Icon(Icons.add_shopping_cart, color: Colors.green, size: 28),
             onPressed: _showAddDialog,
-            tooltip: "Ajouter commande",
+            tooltip: "Nouvelle commande",
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.green))
-          : _orders.isEmpty
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator(color: Colors.green))
+              : _orders.isEmpty
               ? Center(
-                  child: Text(
-                    "Aucune commande trouvée",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                )
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 80,
+                      color: Colors.grey[300],
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      "Aucune commande",
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Commencez à commander vos repas préférés",
+                      style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                    ),
+                  ],
+                ),
+              )
               : RefreshIndicator(
-                  onRefresh: _fetchOrders,
-                  child: ListView.builder(
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    itemCount: _orders.length,
-                    itemBuilder: (context, index) {
-                      var order = _orders[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 3,
-                        shadowColor: Colors.black12,
-                        child: ListTile(
-                          contentPadding: EdgeInsets.all(16),
-                          title: Text(
-                            "Commande #${order['id']}",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                onRefresh: _fetchOrders,
+                color: Colors.green,
+                child: ListView.builder(
+                  padding: EdgeInsets.all(16),
+                  itemCount: _orders.length,
+                  itemBuilder: (context, index) {
+                    var order = _orders[index];
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 6,
+                            offset: Offset(0, 3),
                           ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        ],
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "Utilisateur: ${order['user_id']}",
-                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                  "Commande #${order['id']}",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                  ),
                                 ),
-                                Text(
-                                  "Repas: ${order['meal_id']}",
-                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  "Quantité: ${order['quantity']}  |  Prix total: ${order['total_price']} €",
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                                ),
-                                SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Statut : ",
-                                      style: TextStyle(fontWeight: FontWeight.w600),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _statusColor(
+                                      order['status'],
+                                    ).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: _statusColor(
+                                        order['status'],
+                                      ).withOpacity(0.3),
                                     ),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _statusColor(order['status']).withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        order['status'].toString().toUpperCase(),
-                                        style: TextStyle(
-                                          color: _statusColor(order['status']),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  ],
-                                )
+                                  ),
+                                  child: Text(
+                                    order['status'].toString().toUpperCase(),
+                                    style: TextStyle(
+                                      color: _statusColor(order['status']),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit, color: Colors.blue),
-                                tooltip: "Modifier",
-                                onPressed: () => _editOrder(order['id']),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                tooltip: "Supprimer",
-                                onPressed: () => _deleteOrder(order['id']),
-                              ),
-                            ],
-                          ),
+                            SizedBox(height: 12),
+                            Divider(height: 1),
+                            SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.fastfood,
+                                  size: 20,
+                                  color: Colors.green[600],
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Repas ID: ${order['meal_id']}",
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.shopping_basket,
+                                  size: 20,
+                                  color: Colors.green[600],
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Quantité: ${order['quantity']}",
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Total",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  "€${order['total_price']}",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _editOrder(order['id']),
+                                  icon: Icon(Icons.edit, size: 18),
+                                  label: Text("Modifier"),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.blue,
+                                    side: BorderSide(color: Colors.blue),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => _deleteOrder(order['id']),
+                                  icon: Icon(Icons.delete, size: 18),
+                                  label: Text("Supprimer"),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                    side: BorderSide(color: Colors.red),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
+              ),
     );
   }
 }

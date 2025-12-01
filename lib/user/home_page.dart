@@ -13,7 +13,7 @@ class HomePage extends StatelessWidget {
         child: Column(
           children: [
             Text("Bienvenue USER $user"),
-            Image(image: AssetImage("images/dashboard.png")),
+            Image(image: AssetImage("assets/images/dashboard_user.png")),
           
             SizedBox(height: 20),
             ElevatedButton(

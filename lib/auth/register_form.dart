@@ -41,7 +41,7 @@ class _RegisterFormState extends State<RegisterForm> {
           // Redirection directe vers la HomePage
           Navigator.pushNamed(
             context,
-            '/home',
+            '/user_home',
             arguments: controllerUsername.text,
           );
         } else {
@@ -73,7 +73,7 @@ class _RegisterFormState extends State<RegisterForm> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(height: 100),
-                Image.asset("images/register.png"),
+                Image.asset("assets/images/auth.png"),
                 Text(
                   "Créer un compte",
                   style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
@@ -122,7 +122,7 @@ class _RegisterFormState extends State<RegisterForm> {
 
                 TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/');
+                    Navigator.pushNamed(context, '/login');
                   },
                   child: Text("Vous avez déjà un compte ? Se connecter"),
                 )
