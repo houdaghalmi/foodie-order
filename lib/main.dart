@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:foodie_order/user/home_page.dart' as UserHome;
 import 'package:foodie_order/admin/home_page.dart' as AdminHome;
 import 'auth/login_form.dart';
-import 'auth/register_form.dart';
+import 'auth/register_form.dart'; 
 import 'admin/meals/add_meals.dart';
 import 'admin/meals/list_meals.dart';
 import 'user/order/add_order.dart';
@@ -28,8 +28,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => LandingHome(),
         '/register': (context) => RegisterForm(),
         '/login': (context) => LoginForm(),
-        '/admin_home': (context) => AdminHome.HomePage(),
-        '/user_home': (context) => UserHome.HomePage(),
+        '/admin_home': (context) => AdminHome.AdminHomePage(),
+        '/user_home': (context) =>  UserHome.UserHomePage(),
         '/add_meals': (context) => AddMealForm(onMealAdded: () {}),
         '/list_meals': (context) => ListMeals(),
 

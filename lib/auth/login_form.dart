@@ -48,10 +48,11 @@ class _LoginFormState extends State<LoginForm> {
           );
 
           String role = data['role'] ?? 'user';
+          String username = data['username'] ?? "Food Lover";
           if (role == 'admin') {
-            Navigator.pushNamed(context, '/admin_home', arguments: controllerEmail.text);
+            Navigator.pushNamed(context, '/admin_home', arguments: username);
           } else {
-            Navigator.pushNamed(context, '/user_home', arguments: controllerEmail.text);
+            Navigator.pushNamed(context, '/user_home', arguments: username);
           }
         } else {
           if (!mounted) return;
