@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Gestion des commandes ',
       theme: ThemeData(primarySwatch: Colors.blue),
+      debugShowCheckedModeBanner: false,
 
       initialRoute: '/',
       routes: {
