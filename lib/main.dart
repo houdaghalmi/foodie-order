@@ -7,6 +7,7 @@ import 'admin/meals/add_meals.dart';
 import 'admin/meals/list_meals.dart';
 import 'user/order/add_order.dart';
 import 'user/order/list_orders.dart';
+import 'home.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
 
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginForm(),
+        '/': (context) => LandingHome(),
         '/register': (context) => RegisterForm(),
         '/login': (context) => LoginForm(),
         '/admin_home': (context) => AdminHome.HomePage(),
