@@ -19,6 +19,8 @@ class EditOrderForm extends StatefulWidget {
 
 class _EditOrderFormState extends State<EditOrderForm> {
   late TextEditingController quantityController;
+  late TextEditingController telController;
+  late TextEditingController adresseController;
   late String status;
   late double mealPrice;
   late double totalPrice;
@@ -28,6 +30,12 @@ class _EditOrderFormState extends State<EditOrderForm> {
     super.initState();
     quantityController = TextEditingController(
       text: widget.order['quantity'].toString(),
+    );
+    telController = TextEditingController(
+      text: widget.order['tel']?.toString() ?? '',
+    );
+    adresseController = TextEditingController(
+      text: widget.order['adresse']?.toString() ?? '',
     );
     status = widget.order['status'];
     mealPrice =
@@ -61,6 +69,24 @@ class _EditOrderFormState extends State<EditOrderForm> {
       return;
     }
 
+    // Validation du téléphone si fourni
+    if (telController.text.isNotEmpty) {
+      if (!_isValidPhoneNumber(telController.text)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Numéro de téléphone invalide")),
+        );
+        return;
+      }
+    }
+
+    // Validation de l'adresse si fournie
+    if (adresseController.text.isNotEmpty && adresseController.text.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("L'adresse doit contenir au moins 5 caractères")),
+      );
+      return;
+    }
+
     var url = Uri.parse("${globals.baseUrl}edit_order.php");
     try {
       var response = await http.post(
@@ -71,268 +97,402 @@ class _EditOrderFormState extends State<EditOrderForm> {
           "quantity": qty,
           "total_price": double.parse(totalPrice.toStringAsFixed(2)),
           "status": status,
+          "tel": telController.text.trim().isEmpty ? null : telController.text.trim(),
+          "adresse": adresseController.text.trim().isEmpty ? null : adresseController.text.trim(),
         }),
       );
 
-      if (response.statusCode == 200 &&
-          (response.headers['content-type']?.toLowerCase().contains(
-                'application/json',
-              ) ??
-              false)) {
-        var data = jsonDecode(response.body);
-        if (data["success"]) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Commande modifiée avec succès")),
-          );
-          widget.onOrderUpdated();
-          Navigator.pop(context);
+      if (response.statusCode == 200) {
+        var contentType = response.headers['content-type']?.toLowerCase() ?? '';
+        if (contentType.contains('application/json')) {
+          var data = jsonDecode(response.body);
+          if (data["success"]) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Commande modifiée avec succès")),
+            );
+            widget.onOrderUpdated();
+            Navigator.pop(context);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Erreur : ${data['message']}")),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erreur : ${data['message']}")),
+            SnackBar(content: Text("Erreur: réponse serveur invalide")),
           );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur serveur ou réponse non JSON")),
+          SnackBar(content: Text("Erreur serveur (${response.statusCode})")),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erreur réseau : $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur réseau : $e")),
+      );
     }
+  }
+
+  bool _isValidPhoneNumber(String phone) {
+    final phoneRegex = RegExp(r'^[0-9\s\-\+\(\)]{8,15}$');
+    return phoneRegex.hasMatch(phone);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.9,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Modifier la commande",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 2,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.green[700]),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Modifier la commande",
+          style: TextStyle(
+            color: Colors.grey[800],
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Command ID
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
               ),
-              SizedBox(height: 20),
-
-              // Quantity field
-              Text(
-                "Quantité",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: "Entrez la quantité",
-                  prefixIcon: Icon(Icons.shopping_basket, color: Colors.green),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.green, width: 2),
-                  ),
-                ),
-                onChanged: (_) => _updateTotalPrice(),
-              ),
-              SizedBox(height: 20),
-
-              // Status dropdown
-              Text(
-                "Statut",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: status,
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.info_outline, color: Colors.green),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.green, width: 2),
-                  ),
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: "pending",
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Text("En attente"),
-                      ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Commande #${widget.order['id']}",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  DropdownMenuItem(
-                    value: "confirmed",
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Text("Confirmée"),
-                      ],
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(widget.order['status']).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getStatusColor(widget.order['status']).withOpacity(0.3),
+                      ),
                     ),
-                  ),
-                  DropdownMenuItem(
-                    value: "cancelled",
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Text("Annulée"),
-                      ],
+                    child: Text(
+                      widget.order['status'].toString().toUpperCase(),
+                      style: TextStyle(
+                        color: _getStatusColor(widget.order['status']),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    status = value ?? status;
-                  });
-                },
               ),
-              SizedBox(height: 24),
-
-              // Price display
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
+            ),
+            
+            SizedBox(height: 24),
+            
+            // Téléphone field
+            Text(
+              "Téléphone",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: telController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                hintText: "Ex: 0612345678",
+                prefixIcon: Icon(Icons.phone, color: Colors.green),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green[200]!),
+                  borderSide: BorderSide.none,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Prix total",
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.green, width: 2),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Adresse field
+            Text(
+              "Adresse de livraison",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: adresseController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: "Ex: 123 Rue de Paris, 75001 Paris",
+                prefixIcon: Icon(Icons.location_on, color: Colors.green),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.green, width: 2),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Quantity field
+            Text(
+              "Quantité",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: "Entrez la quantité",
+                prefixIcon: Icon(Icons.shopping_basket, color: Colors.green),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.green, width: 2),
+                ),
+              ),
+              onChanged: (_) => _updateTotalPrice(),
+            ),
+            SizedBox(height: 20),
+
+            // Status dropdown
+            Text(
+              "Statut",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: status,
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.info_outline, color: Colors.green),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.green, width: 2),
+                ),
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: "pending",
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text("En attente"),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: "confirmed",
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text("Confirmée"),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: "cancelled",
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text("Annulée"),
+                    ],
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  status = value ?? status;
+                });
+              },
+            ),
+            SizedBox(height: 24),
+
+            // Price display
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Prix total",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  Text(
+                    "${totalPrice.toStringAsFixed(2)} DT",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      "Annuler",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey[700],
                       ),
                     ),
-                    Text(
-                      "€${totalPrice.toStringAsFixed(2)}",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[700],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey[300]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        "Annuler",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[700],
-                        ),
+                    ),
+                    child: Text(
+                      "Enregistrer",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        "Enregistrer",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return Colors.orange;
+      case "confirmed":
+        return Colors.green;
+      case "cancelled":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }
